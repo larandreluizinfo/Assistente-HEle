@@ -1,0 +1,186 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", Arial, sans-serif;
+  background: linear-gradient(135deg, #1d3557, #264653);
+  color: #ffffff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.cabecalho {
+  text-align: center;
+  padding: 1.5rem 1rem 0.5rem;
+}
+
+.cabecalho h1 {
+  font-size: 2.5rem;
+  letter-spacing: 0.1em;
+}
+
+.cabecalho p {
+  color: #a8dadc;
+}
+
+.palco {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.avatar {
+  width: 220px;
+  height: 220px;
+}
+
+.avatar-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.avatar-svg .olho {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 0.12s ease;
+}
+
+.avatar-svg.estado-ouvindo .olho {
+  animation: olhos-curiosos 1s infinite alternate;
+}
+
+@keyframes olhos-curiosos {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(1.15); }
+}
+
+.status {
+  font-size: 1.1rem;
+  padding: 0.4rem 1.2rem;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.painel-fala {
+  min-height: 3.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  padding: 1rem;
+  text-align: center;
+  font-size: 1.05rem;
+  max-width: 100%;
+}
+
+.btn {
+  background: #e76f51;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.8rem 2rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.2s;
+}
+
+.btn:hover {
+  background: #f4a261;
+  transform: translateY(-2px);
+}
+
+.btn-secundario {
+  background: #457b9d;
+}
+
+.btn-secundario:hover {
+  background: #1d3557;
+}
+
+.btn-remover {
+  background: #e63946;
+  padding: 0.4rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.rodape {
+  text-align: center;
+  padding: 1rem;
+}
+
+.rodape a {
+  color: #a8dadc;
+}
+
+.painel {
+  flex: 1;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem;
+  width: 100%;
+}
+
+fieldset {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 0.8rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+legend {
+  color: #a8dadc;
+  padding: 0 0.5rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.8rem;
+  color: #f1faee;
+}
+
+input,
+textarea {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: none;
+  font-size: 1rem;
+  background: #f1faee;
+  color: #1d3557;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.faq-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.8rem 0;
+  margin-top: 0.5rem;
+}
+
+.acoes {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.msg {
+  text-align: center;
+  color: #2a9d8f;
+  margin-top: 0.8rem;
+  min-height: 1.5rem;
+}

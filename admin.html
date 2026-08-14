@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel — Conhecimento da HEle</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+</head>
+<body>
+  <header class="cabecalho">
+    <h1>Painel de edição</h1>
+    <p>Atualize as informações que a HEle conhece</p>
+  </header>
+  <main class="painel">
+    <form id="form-conhecimento">
+      <fieldset>
+        <legend>Projeto</legend>
+        <label>Nome <input type="text" id="projeto-nome" /></label>
+        <label>O que é <textarea id="projeto-descricao"></textarea></label>
+        <label>Detalhes <textarea id="projeto-detalhes"></textarea></label>
+        <label>Créditos <input type="text" id="projeto-creditos" /></label>
+      </fieldset>
+      <fieldset>
+        <legend>Evento</legend>
+        <label>Nome do evento <input type="text" id="evento-nome" /></label>
+        <label>Local <input type="text" id="evento-local" /></label>
+        <label>Horários <input type="text" id="evento-horarios" /></label>
+        <label>Mapa <textarea id="evento-mapa"></textarea></label>
+        <label>Estandes <textarea id="evento-estandes" placeholder="Um por linha"></textarea></label>
+        <label>Banheiros <input type="text" id="evento-banheiros" /></label>
+        <label>Outras informações <textarea id="evento-outras"></textarea></label>
+      </fieldset>
+      <fieldset>
+        <legend>Perguntas frequentes</legend>
+        <div id="lista-faq"></div>
+        <button type="button" id="btn-add-faq" class="btn btn-secundario">Adicionar pergunta</button>
+      </fieldset>
+      <div class="acoes">
+        <button type="submit" class="btn">Salvar</button>
+        <button type="button" id="btn-reset" class="btn btn-secundario">Restaurar padrão</button>
+      </div>
+      <p id="msg" class="msg"></p>
+    </form>
+  </main>
+  <footer class="rodape"><a href="index.html">Voltar para a assistente</a></footer>
+  <script src="js/config.js"></script>
+  <script src="js/conhecimento.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
