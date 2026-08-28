@@ -26,12 +26,19 @@ const Voz = (() => {
   }
 
   function ouvir(aoResultado, aoErro) {
-    if (!reconhecedor) reconhecedor = prepararReconhecimento();
-    if (!reconhecedor) {
+    const Reconhecimento = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Reconhecimento) {
       if (aoErro) aoErro("reconhecimento_nao_suportado");
       return;
     }
-    try { reconhecedor.stop(); } catch (erro) { /* nada a fazer */ }
+    if (reconhecedor) {
+      try { reconhecedor.abort(); } catch (e) { /* ignorar */ }
+    }
+    reconhecedor = Reconhecimento();
+    reconhecedor.lang = CONFIG.LOCALE_PT;
+    reconhecedor.interimResults = false;
+    reconhecedor.continuous = false;
+    reconhecedor.maxAlternatives = 1;
     reconhecedor.onresult = function (evento) {
       const texto = evento.results[0][0].transcript.trim();
       if (aoResultado && texto) aoResultado(texto);
@@ -39,12 +46,13 @@ const Voz = (() => {
     reconhecedor.onerror = function (evento) {
       if (aoErro) aoErro(evento.error);
     };
-    try { reconhecedor.start(); } catch (erro) { /* já iniciado */ }
+    try { reconhecedor.start(); } catch (erro) { /* j\xe1 iniciado */ }
   }
 
   function pararDeOuvir() {
     if (reconhecedor) {
-      try { reconhecedor.stop(); } catch (erro) { /* nada a fazer */ }
+      try { reconhecedor.abort(); } catch (erro) { /* ignorar */ }
+      reconhecedor = null;
     }
   }
 

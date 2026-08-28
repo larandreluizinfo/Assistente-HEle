@@ -42,7 +42,7 @@ const Assistente = (() => {
 
   async function chamarGemini(pergunta) {
     if (!CONFIG.GEMINI_API_KEY || CONFIG.GEMINI_API_KEY.startsWith("COLE")) {
-      return "Ainda não configuraram minha chave de inteligência. Peça ajuda aos alunos do estande!";
+      return "Ainda n\xe3o configuraram minha chave de intelig\xe2ncia. Pe\xe7a ajuda aos alunos do estande!";
     }
     const contexto = montarContexto(conhecimento);
     const url = CONFIG.GEMINI_URL + "/" + CONFIG.GEMINI_MODELO + ":generateContent?key=" + encodeURIComponent(CONFIG.GEMINI_API_KEY);
@@ -69,12 +69,14 @@ const Assistente = (() => {
     return partes.map(function (parte) { return parte.text; }).join("").trim();
   }
 
-  function aguardarPergunta() {
+  function ouvirDireto() {
+    Avatar.pararFala();
+    Avatar.definirEstado("ouvindo");
     setStatus("Ouvindo...");
     Voz.ouvir(
       async function (texto) {
         if (texto) await responder(texto);
-        if (ocupado) aguardarPergunta();
+        if (ocupado) ouvirDireto();
       },
       async function (erro) {
         if (erro === "not-allowed" || erro === "service-not-allowed") {
@@ -84,7 +86,7 @@ const Assistente = (() => {
         const aviso = "Desculpe, não entendi. Pode repetir?";
         setStatus(aviso);
         await falarAsync(aviso);
-        if (ocupado) aguardarPergunta();
+        if (ocupado) ouvirDireto();
       }
     );
   }
@@ -106,8 +108,7 @@ const Assistente = (() => {
       await falarAsync(mensagem);
     }
     if (ocupado) {
-      Avatar.definirEstado("ouvindo");
-      setStatus("Ouvindo...");
+      ouvirDireto();
     } else {
       Avatar.definirEstado("idle");
       setStatus("Aguardando visita");
@@ -124,8 +125,7 @@ const Assistente = (() => {
     setFala(saudacao);
     await falarAsync(saudacao);
     if (!ocupado) return;
-    Avatar.definirEstado("ouvindo");
-    aguardarPergunta();
+    ouvirDireto();
   }
 
   function visitanteDetectado() {
@@ -137,7 +137,9 @@ const Assistente = (() => {
   function pedirParaFalar() {
     reiniciarInatividade();
     if (ocupado) {
-      aguardarPergunta();
+      Voz.pararFala();
+      ocupado = true;
+      ouvirDireto();
     } else {
       cumprimentar();
     }
