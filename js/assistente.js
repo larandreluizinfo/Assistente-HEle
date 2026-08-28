@@ -97,10 +97,18 @@ const Assistente = (() => {
     Avatar.definirEstado("pensando");
     setStatus("Pensando...");
     try {
-      const resposta = await chamarGemini(texto);
-      setStatus("Falando");
-      setFala("HEle: " + resposta);
-      await falarAsync(resposta);
+      const projeto = buscarProjeto(conhecimento, texto);
+      if (projeto) {
+        const resposta = projeto.nome + " — " + projeto.alunos + " (" + projeto.area + "). " + projeto.objetivo + " " + projeto.descricao;
+        setStatus("Falando");
+        setFala("HEle: " + resposta);
+        await falarAsync(resposta);
+      } else {
+        const resposta = await chamarGemini(texto);
+        setStatus("Falando");
+        setFala("HEle: " + resposta);
+        await falarAsync(resposta);
+      }
     } catch (erro) {
       const mensagem = "Desculpe, tive um problema para pensar. Pode perguntar de novo?";
       setStatus("Erro");
@@ -120,7 +128,7 @@ const Assistente = (() => {
     ultimoCumprimento = Date.now();
     ocupado = true;
     reiniciarInatividade();
-    const saudacao = "Olá! Eu sou a " + CONFIG.NOME + ", a assistente desta feira de ciências. Pode me perguntar sobre o projeto ou o evento!";
+    const saudacao = "Olá! Eu sou a " + CONFIG.NOME + ", a assistente desta feira de conhecimento. Conheço " + (conhecimento.projetos ? conhecimento.projetos.length : 0) + " projetos. Pode me perguntar sobre qualquer um deles!";
     setStatus("Falando");
     setFala(saudacao);
     await falarAsync(saudacao);
