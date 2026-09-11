@@ -154,6 +154,11 @@ const Assistente = (() => {
   }
 
   function iniciar() {
+    if (typeof CONFIG === "undefined") {
+      setStatus("Falta o arquivo js/config.js — copie de js/config.example.js");
+      setFala("Erro de configuração: js/config.js não encontrado.");
+      return;
+    }
     conhecimento = carregarConhecimento();
     const container = document.getElementById("avatar");
     if (container) Avatar.montar(container);
