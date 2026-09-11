@@ -15,6 +15,11 @@ const Assistente = (() => {
     if (elemento) elemento.textContent = texto;
   }
 
+  function setOuvido(texto) {
+    const elemento = document.getElementById("ouvido");
+    if (elemento) elemento.textContent = texto ? 'Você disse: "' + texto + '"' : "";
+  }
+
   function reiniciarInatividade() {
     if (temporizadorInatividade) clearTimeout(temporizadorInatividade);
     temporizadorInatividade = setTimeout(voltarAoIdle, CONFIG.TEMPO_INATIVIDADE_MS);
@@ -28,6 +33,7 @@ const Assistente = (() => {
     Avatar.definirEstado("idle");
     setStatus("Aguardando visita");
     setFala("");
+    setOuvido("");
   }
 
   function falarAsync(texto) {
@@ -70,13 +76,23 @@ const Assistente = (() => {
     return partes.map(function (parte) { return parte.text; }).join("").trim();
   }
 
+  function dicasProjetos() {
+    if (!conhecimento || !conhecimento.projetos) return [];
+    return conhecimento.projetos.map(function (p) { return p.nome; });
+  }
+
   function ouvirDireto() {
     Avatar.pararFala();
     Avatar.definirEstado("ouvindo");
     setStatus("Ouvindo...");
     Voz.ouvir(
-      async function (texto) {
+      async function (texto, confianca) {
         tentativasVazias = 0;
+        if (confianca && confianca < 0.4) {
+          setStatus("Não entendi bem, pode repetir mais alto?");
+          if (ocupado) ouvirDireto();
+          return;
+        }
         if (texto) await responder(texto);
         else if (ocupado) ouvirDireto();
       },
@@ -114,13 +130,15 @@ const Assistente = (() => {
       function () {
         // onend sem resultado (silêncio): retry silencioso, sem TTS
         if (ocupado) ouvirDireto();
-      }
+      },
+      dicasProjetos()
     );
   }
 
   async function responder(texto) {
     ocupado = true;
     reiniciarInatividade();
+    setOuvido(texto);
     Avatar.definirEstado("pensando");
     setStatus("Pensando...");
     try {
@@ -195,6 +213,19 @@ const Assistente = (() => {
     window.addEventListener("hele:visitante", visitanteDetectado);
     const botao = document.getElementById("btn-falar");
     if (botao) botao.addEventListener("click", pedirParaFalar);
+    const formTexto = document.getElementById("form-texto");
+    if (formTexto) formTexto.addEventListener("submit", function (evento) {
+      evento.preventDefault();
+      const campo = document.getElementById("entrada-texto");
+      const texto = campo ? campo.value.trim() : "";
+      if (!texto) return;
+      campo.value = "";
+      reiniciarInatividade();
+      tentativasVazias = 0;
+      Voz.pararFala();
+      Voz.pararDeOuvir();
+      responder(texto);
+    });
     const suporteVoz = "speechSynthesis" in window;
     setStatus(suporteVoz ? "Aguardando visita" : "Navegador sem suporte a voz");
     setTimeout(cumprimentar, 800);

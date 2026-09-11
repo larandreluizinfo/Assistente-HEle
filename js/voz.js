@@ -25,7 +25,7 @@ const Voz = (() => {
     return rec;
   }
 
-  function ouvir(aoResultado, aoErro, aoFim) {
+  function ouvir(aoResultado, aoErro, aoFim, dicas) {
     const Reconhecimento = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Reconhecimento) {
       if (aoErro) aoErro("reconhecimento_nao_suportado");
@@ -43,13 +43,31 @@ const Voz = (() => {
     reconhecedor.lang = CONFIG.LOCALE_PT;
     reconhecedor.interimResults = false;
     reconhecedor.continuous = false;
-    reconhecedor.maxAlternatives = 1;
+    reconhecedor.maxAlternatives = 3;
+    // Gramática com nomes dos projetos: aumenta a precisão no Chrome
+    try {
+      const ListaGramatica = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+      if (ListaGramatica && dicas && dicas.length) {
+        const lista = new ListaGramatica();
+        const frases = dicas.map(function (d) { return d.toLowerCase(); }).join(" | ");
+        lista.addFromString("#JSGF V1.0; grammar projetos; public <projeto> = " + frases + " ;", 1);
+        reconhecedor.grammars = lista;
+      }
+    } catch (e) { /* gramática opcional */ }
     let finalizado = false;
     reconhecedor.onresult = function (evento) {
       if (finalizado) return;
       finalizado = true;
-      const texto = evento.results[0][0].transcript.trim();
-      if (aoResultado && texto) aoResultado(texto);
+      const res = evento.results[0];
+      let melhor = res[0];
+      for (let i = 1; i < res.length; i++) {
+        try {
+          if ((res[i].confidence || 0) > (melhor.confidence || 0)) melhor = res[i];
+        } catch (e) { /* ignora */ }
+      }
+      const texto = (melhor.transcript || "").trim();
+      const confianca = melhor.confidence || 0;
+      if (aoResultado && texto) aoResultado(texto, confianca);
       else if (aoFim) aoFim();
     };
     reconhecedor.onerror = function (evento) {

@@ -279,27 +279,63 @@ function normalizarTexto(s) {
   return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 }
 
+function distanciaEdicao(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  const dp = new Array(m + 1);
+  for (let i = 0; i <= m; i++) dp[i] = [i].concat(new Array(n).fill(0));
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const custo = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + custo);
+    }
+  }
+  return dp[m][n];
+}
+
+function pontuacaoExata(p, t, palavrasPergunta) {
+  const nome = normalizarTexto(p.nome || "");
+  if (!nome) return 0;
+  if (nome && t.indexOf(nome) !== -1) return 100;
+  if (t.length >= 3 && nome.indexOf(t) !== -1) return 80;
+  const palavrasNome = nome.split(/[^a-z0-9]+/).filter(function (w) { return w.length >= 4; });
+  const acertosNome = palavrasNome.filter(function (w) { return t.indexOf(w) !== -1; }).length;
+  if (acertosNome) return 50 + acertosNome * 10;
+  const outrosPalavras = normalizarTexto([(p.alunos || ""), (p.area || ""), (p.objetivo || ""), (p.descricao || "")].join(" "))
+    .split(/[^a-z0-9]+/).filter(Boolean);
+  const acertosOutros = palavrasPergunta.filter(function (w) { return outrosPalavras.indexOf(w) !== -1; }).length;
+  if (acertosOutros) return 10 + acertosOutros;
+  return 0;
+}
+
 function buscarProjeto(conhecimento, termo) {
   if (!conhecimento || !conhecimento.projetos || !termo) return null;
   const t = normalizarTexto(termo).trim();
   if (!t) return null;
   const palavrasPergunta = t.split(/[^a-z0-9]+/).filter(function (w) { return w.length >= 4; });
-  return conhecimento.projetos.find(function (p) {
+  // Passada 1: exato (prioriza "cidade" em "cidade intelegente")
+  let melhor = null, melhorPts = 0;
+  for (const p of conhecimento.projetos) {
+    const pts = pontuacaoExata(p, t, palavrasPergunta);
+    if (pts > melhorPts) { melhorPts = pts; melhor = p; }
+  }
+  if (melhor) return melhor;
+  // Passada 2: fuzzy (tolera erro de transcrição)
+  for (const p of conhecimento.projetos) {
     const nome = normalizarTexto(p.nome || "");
-    if (!nome) return false;
-    // 1. Nome completo mencionado na pergunta: "me fala sobre horta inteligente"
-    if (nome && t.indexOf(nome) !== -1) return true;
-    // 2. Pergunta curta que é parte do nome: "horta"
-    if (t.length >= 3 && nome.indexOf(t) !== -1) return true;
-    // 3. Qualquer palavra relevante do nome aparece na pergunta
-    const palavrasNome = nome.split(/[^a-z0-9]+/).filter(function (w) { return w.length >= 4; });
-    if (palavrasNome.some(function (w) { return t.indexOf(w) !== -1; })) return true;
-    // 4. Palavras da pergunta como palavra inteira nos outros campos (evita "tudo" em "estudos")
-    const outrosPalavras = normalizarTexto([(p.alunos || ""), (p.area || ""), (p.objetivo || ""), (p.descricao || "")].join(" "))
-      .split(/[^a-z0-9]+/).filter(Boolean);
-    if (palavrasPergunta.some(function (w) { return outrosPalavras.indexOf(w) !== -1; })) return true;
-    return false;
-  }) || null;
+    const palavrasNomeTodas = nome.split(/[^a-z0-9]+/).filter(Boolean);
+    for (const wp of palavrasPergunta) {
+      if (wp.length < 5) continue;
+      for (const wn of palavrasNomeTodas) {
+        if (wn.length < 5) continue;
+        if (Math.abs(wp.length - wn.length) > 2) continue;
+        if (distanciaEdicao(wp, wn) <= 2) return p;
+      }
+    }
+  }
+  return null;
 }
 
 function listaProjetosTexto(conhecimento) {

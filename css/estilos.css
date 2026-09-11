@@ -81,6 +81,25 @@ body {
   text-align: center;
   font-size: 1.05rem;
   max-width: 100%;
+  width: 100%;
+}
+
+.ouvido {
+  color: #a8dadc;
+  font-style: italic;
+  font-size: 0.95rem;
+  margin-bottom: 0.4rem;
+}
+
+.form-texto {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.form-texto input {
+  flex: 1;
+  margin-top: 0;
 }
 
 .btn {
