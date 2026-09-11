@@ -218,7 +218,13 @@ function carregarConhecimento() {
       salvarConhecimento(padrao);
       return padrao;
     }
-    return JSON.parse(bruto);
+    const dados = JSON.parse(bruto);
+    // Migração: salvamentos antigos do painel não tinham `projetos` — restaura sem apagar o resto
+    if (!dados.projetos || !dados.projetos.length) {
+      dados.projetos = PROJETOS_FEIRA;
+      salvarConhecimento(dados);
+    }
+    return dados;
   } catch (erro) {
     return conhecimentoPadrao();
   }
@@ -269,15 +275,30 @@ function montarContexto(conhecimento) {
   return linhas.join("\n");
 }
 
+function normalizarTexto(s) {
+  return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function buscarProjeto(conhecimento, termo) {
-  if (!conhecimento.projetos) return null;
-  const t = termo.toLowerCase();
+  if (!conhecimento || !conhecimento.projetos || !termo) return null;
+  const t = normalizarTexto(termo).trim();
+  if (!t) return null;
+  const palavrasPergunta = t.split(/[^a-z0-9]+/).filter(function (w) { return w.length >= 4; });
   return conhecimento.projetos.find(function (p) {
-    return p.nome.toLowerCase().indexOf(t) !== -1 ||
-      p.descricao.toLowerCase().indexOf(t) !== -1 ||
-      p.objetivo.toLowerCase().indexOf(t) !== -1 ||
-      p.alunos.toLowerCase().indexOf(t) !== -1 ||
-      p.area.toLowerCase().indexOf(t) !== -1;
+    const nome = normalizarTexto(p.nome || "");
+    if (!nome) return false;
+    // 1. Nome completo mencionado na pergunta: "me fala sobre horta inteligente"
+    if (nome && t.indexOf(nome) !== -1) return true;
+    // 2. Pergunta curta que é parte do nome: "horta"
+    if (t.length >= 3 && nome.indexOf(t) !== -1) return true;
+    // 3. Qualquer palavra relevante do nome aparece na pergunta
+    const palavrasNome = nome.split(/[^a-z0-9]+/).filter(function (w) { return w.length >= 4; });
+    if (palavrasNome.some(function (w) { return t.indexOf(w) !== -1; })) return true;
+    // 4. Palavras da pergunta como palavra inteira nos outros campos (evita "tudo" em "estudos")
+    const outrosPalavras = normalizarTexto([(p.alunos || ""), (p.area || ""), (p.objetivo || ""), (p.descricao || "")].join(" "))
+      .split(/[^a-z0-9]+/).filter(Boolean);
+    if (palavrasPergunta.some(function (w) { return outrosPalavras.indexOf(w) !== -1; })) return true;
+    return false;
   }) || null;
 }
 

@@ -34,7 +34,7 @@ const Voz = (() => {
     if (reconhecedor) {
       try { reconhecedor.abort(); } catch (e) { /* ignorar */ }
     }
-    reconhecedor = Reconhecimento();
+    reconhecedor = new Reconhecimento();
     reconhecedor.lang = CONFIG.LOCALE_PT;
     reconhecedor.interimResults = false;
     reconhecedor.continuous = false;

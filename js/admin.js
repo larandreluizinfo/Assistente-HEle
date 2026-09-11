@@ -47,6 +47,12 @@ function coletar() {
       resposta: item.querySelector(".faq-resposta").value.trim()
     };
   }).filter(function (faq) { return faq.pergunta && faq.resposta; });
+  // Preserva os projetos: o painel não edita projetos, então mantém os já salvos
+  let projetos = PROJETOS_FEIRA;
+  try {
+    const atual = carregarConhecimento();
+    if (atual && atual.projetos && atual.projetos.length) projetos = atual.projetos;
+  } catch (erro) { /* usa padrão */ }
   return {
     projeto: {
       nome: document.getElementById("projeto-nome").value.trim(),
@@ -63,6 +69,7 @@ function coletar() {
       banheiros: document.getElementById("evento-banheiros").value.trim(),
       outras: document.getElementById("evento-outras").value.trim()
     },
+    projetos: projetos,
     faq: faqs
   };
 }
