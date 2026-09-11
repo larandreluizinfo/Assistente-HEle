@@ -13,21 +13,18 @@
   </header>
   <main class="painel">
     <fieldset>
-      <legend>Entrevista guiada</legend>
-      <p id="treino-pergunta" class="treino-pergunta">Clique em iniciar e responda com voz ou texto.</p>
+      <legend>Conversa automática</legend>
+      <p id="treino-pergunta" class="treino-pergunta">Clique em iniciar: a Helê pergunta, você responde falando ou digitando, e ela já guarda na memória.</p>
+      <div id="treino-conversa" class="treino-conversa" aria-live="polite"></div>
       <p id="treino-progresso" class="treino-progresso"></p>
       <div class="acoes">
-        <button type="button" id="btn-treino-iniciar" class="btn">Iniciar entrevista</button>
-        <button type="button" id="btn-treino-voz" class="btn btn-secundario">Responder por voz</button>
+        <button type="button" id="btn-treino-iniciar" class="btn">Iniciar conversa</button>
         <button type="button" id="btn-treino-parar" class="btn btn-secundario">Parar</button>
       </div>
-      <label>Sua resposta
-        <textarea id="treino-resposta" placeholder="Digite aqui o que a Helê deve aprender..."></textarea>
-      </label>
-      <div class="acoes">
-        <button type="button" id="btn-treino-salvar" class="btn">Salvar na memória</button>
-        <button type="button" id="btn-treino-pular" class="btn btn-secundario">Pular</button>
-      </div>
+      <form id="form-treino-texto" class="form-texto">
+        <input id="treino-resposta" type="text" placeholder="Ou digite a resposta e dê Enter..." autocomplete="off" />
+        <button class="btn" type="submit">Enviar</button>
+      </form>
       <p id="treino-msg" class="msg"></p>
     </fieldset>
     <fieldset>
