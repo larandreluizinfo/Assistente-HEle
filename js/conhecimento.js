@@ -166,7 +166,7 @@ const PROJETOS_FEIRA = [
 function conhecimentoPadrao() {
   return {
     projeto: {
-      nome: "Assistente Hêle",
+      nome: "Assistente Helê",
       descricao: "Uma assistente virtual que conversa com os visitantes da Feira de Conhecimento.",
       detalhes: "Ela fala e escuta usando o navegador, tem um avatar animado e é ativada por um sensor de presença no Arduino. Conhece todos os 20 projetos da feira.",
       creditos: "Desenvolvida pelos alunos como projeto da feira de ciências."
@@ -183,11 +183,11 @@ function conhecimentoPadrao() {
     projetos: PROJETOS_FEIRA,
     faq: [
       {
-        pergunta: "Quem desenvolveu a Hêle?",
+        pergunta: "Quem desenvolveu a Helê?",
         resposta: "Foi desenvolvida pelos alunos como projeto da feira de ciências."
       },
       {
-        pergunta: "Como a Hêle funciona?",
+        pergunta: "Como a Helê funciona?",
         resposta: "Ela usa o microfone e a caixa de som do computador para ouvir e falar com você."
       },
       {
@@ -212,7 +212,7 @@ function conhecimentoPadrao() {
       },
       {
         pergunta: "Quem é você?",
-        resposta: "Sou a Hêle, a assistente virtual da feira de ciências. Conheço os 20 projetos e adoro conversar com os visitantes!"
+        resposta: "Sou a Helê, a assistente virtual da feira de ciências. Conheço os 20 projetos e adoro conversar com os visitantes!"
       }
     ]
   };
