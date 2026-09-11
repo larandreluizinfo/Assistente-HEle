@@ -153,8 +153,12 @@ const Assistente = (() => {
         setStatus("Falando");
         setFala(CONFIG.NOME + ": " + resposta);
         await falarAsync(resposta);
+        if (typeof registrarPendente === "function" && resposta.indexOf("ajuda aos alunos") !== -1) {
+          try { registrarPendente(texto); } catch (e) { /* ignora */ }
+        }
       }
     } catch (erro) {
+      try { if (typeof registrarPendente === "function") registrarPendente(texto); } catch (e) { /* ignora */ }
       const mensagem = "Desculpe, tive um problema para pensar. Pode perguntar de novo?";
       setStatus("Erro");
       setFala(mensagem);

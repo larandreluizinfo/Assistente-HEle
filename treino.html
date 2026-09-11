@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Modo Treinamento — Helê</title>
+  <link rel="stylesheet" href="css/estilos.css" />
+</head>
+<body>
+  <header class="cabecalho">
+    <h1>Modo Treinamento</h1>
+    <p>A Helê pergunta, você responde e ela aprende</p>
+  </header>
+  <main class="painel">
+    <fieldset>
+      <legend>Entrevista guiada</legend>
+      <p id="treino-pergunta" class="treino-pergunta">Clique em iniciar e responda com voz ou texto.</p>
+      <p id="treino-progresso" class="treino-progresso"></p>
+      <div class="acoes">
+        <button type="button" id="btn-treino-iniciar" class="btn">Iniciar entrevista</button>
+        <button type="button" id="btn-treino-voz" class="btn btn-secundario">Responder por voz</button>
+        <button type="button" id="btn-treino-parar" class="btn btn-secundario">Parar</button>
+      </div>
+      <label>Sua resposta
+        <textarea id="treino-resposta" placeholder="Digite aqui o que a Helê deve aprender..."></textarea>
+      </label>
+      <div class="acoes">
+        <button type="button" id="btn-treino-salvar" class="btn">Salvar na memória</button>
+        <button type="button" id="btn-treino-pular" class="btn btn-secundario">Pular</button>
+      </div>
+      <p id="treino-msg" class="msg"></p>
+    </fieldset>
+    <fieldset>
+      <legend>Perguntas que ela não soube responder (<span id="pendentes-count">0</span>)</legend>
+      <div id="lista-pendentes"></div>
+    </fieldset>
+  </main>
+  <footer class="rodape">
+    <a href="index.html">Assistente</a> · <a href="admin.html">Editar conhecimento</a>
+  </footer>
+  <script src="js/config.js"></script>
+  <script src="js/conhecimento.js"></script>
+  <script src="js/voz.js"></script>
+  <script src="js/treino.js"></script>
+</body>
+</html>

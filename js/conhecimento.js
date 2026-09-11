@@ -1,4 +1,5 @@
 const CHAVE_STORAGE = "hele_conhecimento";
+const CHAVE_PENDENTES = "hele_pendentes";
 
 const PROJETOS_FEIRA = [
   {
@@ -368,4 +369,55 @@ function listaProjetosTexto(conhecimento) {
   return conhecimento.projetos.map(function (p) {
     return p.id + ". " + p.nome + " — " + p.alunos + " (" + p.area + ")";
   }).join("\n");
+}
+
+function carregarPendentes() {
+  try {
+    const bruto = localStorage.getItem(CHAVE_PENDENTES);
+    if (!bruto) return [];
+    const lista = JSON.parse(bruto);
+    return Array.isArray(lista) ? lista : [];
+  } catch (erro) {
+    return [];
+  }
+}
+
+function salvarPendentes(lista) {
+  try { localStorage.setItem(CHAVE_PENDENTES, JSON.stringify(lista)); } catch (erro) { /* ignora */ }
+}
+
+function registrarPendente(pergunta) {
+  const texto = (pergunta || "").trim();
+  if (texto.length < 3) return;
+  const lista = carregarPendentes();
+  const chave = normalizarTexto(texto);
+  const existente = lista.find(function (item) { return normalizarTexto(item.pergunta) === chave; });
+  if (existente) {
+    existente.vezes = (existente.vezes || 1) + 1;
+    existente.ultimaVez = new Date().toISOString();
+  } else {
+    lista.unshift({ pergunta: texto, vezes: 1, primeiraVez: new Date().toISOString() });
+  }
+  salvarPendentes(lista.slice(0, 100));
+}
+
+function removerPendente(indice) {
+  const lista = carregarPendentes();
+  lista.splice(indice, 1);
+  salvarPendentes(lista);
+}
+
+function responderPendente(indice, resposta) {
+  const lista = carregarPendentes();
+  const item = lista[indice];
+  if (!item) return false;
+  const dados = carregarConhecimento();
+  dados.faq = dados.faq || [];
+  const chave = normalizarTexto(item.pergunta);
+  const faqExistente = dados.faq.find(function (f) { return normalizarTexto(f.pergunta) === chave; });
+  if (faqExistente) faqExistente.resposta = resposta;
+  else dados.faq.push({ pergunta: item.pergunta, resposta: resposta });
+  salvarConhecimento(dados);
+  removerPendente(indice);
+  return true;
 }
