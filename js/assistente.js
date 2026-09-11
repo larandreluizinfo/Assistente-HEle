@@ -3,6 +3,7 @@ const Assistente = (() => {
   let ocupado = false;
   let temporizadorInatividade = null;
   let ultimoCumprimento = 0;
+  let tentativasVazias = 0;
 
   function setStatus(texto) {
     const elemento = document.getElementById("status");
@@ -75,17 +76,43 @@ const Assistente = (() => {
     setStatus("Ouvindo...");
     Voz.ouvir(
       async function (texto) {
+        tentativasVazias = 0;
         if (texto) await responder(texto);
-        if (ocupado) ouvirDireto();
+        else if (ocupado) ouvirDireto();
       },
       async function (erro) {
-        if (erro === "not-allowed" || erro === "service-not-allowed") {
-          setStatus("Permita o acesso ao microfone e recarregue a página.");
+        // Erros fatais: para o loop e pede ação do usuário (evita spam de permissão)
+        if (erro === "not-allowed" || erro === "service-not-allowed" || erro === "reconhecimento_nao_suportado") {
+          ocupado = false;
+          Avatar.definirEstado("idle");
+          setStatus("Clique em Falar e permita o microfone (use http://localhost).");
           return;
         }
+        if (erro === "audio-capture") {
+          ocupado = false;
+          Avatar.definirEstado("idle");
+          setStatus("Nenhum microfone encontrado.");
+          return;
+        }
+        if (erro === "aborted" || erro === "start-falhou") {
+          if (ocupado) ouvirDireto();
+          return;
+        }
+        // "no-speech" / "network" / outros: retry silencioso 2x antes de falar
+        tentativasVazias++;
+        if (tentativasVazias < 3) {
+          setStatus("Ouvindo...");
+          if (ocupado) ouvirDireto();
+          return;
+        }
+        tentativasVazias = 0;
         const aviso = "Desculpe, não entendi. Pode repetir?";
         setStatus(aviso);
         await falarAsync(aviso);
+        if (ocupado) ouvirDireto();
+      },
+      function () {
+        // onend sem resultado (silêncio): retry silencioso, sem TTS
         if (ocupado) ouvirDireto();
       }
     );
@@ -144,8 +171,10 @@ const Assistente = (() => {
 
   function pedirParaFalar() {
     reiniciarInatividade();
+    tentativasVazias = 0;
     if (ocupado) {
       Voz.pararFala();
+      Voz.pararDeOuvir();
       ocupado = true;
       ouvirDireto();
     } else {

@@ -25,28 +25,47 @@ const Voz = (() => {
     return rec;
   }
 
-  function ouvir(aoResultado, aoErro) {
+  function ouvir(aoResultado, aoErro, aoFim) {
     const Reconhecimento = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!Reconhecimento) {
       if (aoErro) aoErro("reconhecimento_nao_suportado");
       return;
     }
     if (reconhecedor) {
-      try { reconhecedor.abort(); } catch (e) { /* ignorar */ }
+      try {
+        reconhecedor.onresult = null;
+        reconhecedor.onerror = null;
+        reconhecedor.onend = null;
+        reconhecedor.abort();
+      } catch (e) { /* ignorar */ }
     }
     reconhecedor = new Reconhecimento();
     reconhecedor.lang = CONFIG.LOCALE_PT;
     reconhecedor.interimResults = false;
     reconhecedor.continuous = false;
     reconhecedor.maxAlternatives = 1;
+    let finalizado = false;
     reconhecedor.onresult = function (evento) {
+      if (finalizado) return;
+      finalizado = true;
       const texto = evento.results[0][0].transcript.trim();
       if (aoResultado && texto) aoResultado(texto);
+      else if (aoFim) aoFim();
     };
     reconhecedor.onerror = function (evento) {
+      if (finalizado) return;
+      finalizado = true;
       if (aoErro) aoErro(evento.error);
     };
-    try { reconhecedor.start(); } catch (erro) { /* j\xe1 iniciado */ }
+    reconhecedor.onend = function () {
+      if (finalizado) return;
+      finalizado = true;
+      if (aoFim) aoFim();
+    };
+    try { reconhecedor.start(); } catch (erro) {
+      finalizado = true;
+      if (aoErro) aoErro("start-falhou");
+    }
   }
 
   function pararDeOuvir() {
