@@ -1,21 +1,9 @@
 const Treino = (() => {
   let ativo = false;
-  let passo = 0;
-  let projetoAtual = null;
-  let alunoAtual = "";
+  let fila = [];
+  let atual = null;
   let ouvindo = false;
-
-  // Conversa básica e curta. Se a resposta citar um projeto, vincula na memória.
-  const PASSOS = [
-    { id: "nome", pergunta: "Oi! Eu sou a Helê. Qual é o seu nome?", memoria: null },
-    { id: "turma", pergunta: "De qual turma você é?", memoria: null },
-    { id: "projeto", pergunta: "Qual projeto você apresenta?", memoria: null },
-    { id: "o_que_faz", pergunta: "O que o projeto faz?", memoria: true },
-    { id: "como_funciona", pergunta: "Como ele funciona?", memoria: true },
-    { id: "parte_legal", pergunta: "Qual é a parte mais legal?", memoria: true },
-    { id: "estande", pergunta: "Onde fica o estande de vocês?", memoria: true },
-    { id: "outro", pergunta: "Quer falar de outro projeto? Diga o nome ou diga não.", memoria: null }
-  ];
+  let extras = {};
 
   function msg(texto) {
     const el = document.getElementById("treino-msg");
@@ -27,9 +15,10 @@ const Treino = (() => {
 
   function falar(texto) {
     return new Promise(function (resolve) {
-      try { Voz.falar(texto, null, resolve); }
-      catch (e) { resolve(); }
-      setTimeout(resolve, 8000); // trava de segurança
+      let done = false;
+      const fim = function () { if (!done) { done = true; resolve(); } };
+      try { Voz.falar(texto, null, fim); } catch (e) { fim(); }
+      setTimeout(fim, 9000);
     });
   }
 
@@ -43,53 +32,104 @@ const Treino = (() => {
     box.scrollTop = box.scrollHeight;
   }
 
-  function mostrarPergunta(texto) {
-    const el = document.getElementById("treino-pergunta");
-    if (el) el.textContent = texto;
-    const prog = document.getElementById("treino-progresso");
-    if (prog) prog.textContent = ativo ? "Memória: " + contarMemoria() + " respostas · " + (projetoAtual ? "Projeto: " + projetoAtual.nome : "conversa inicial") : "";
-  }
-
   function contarMemoria() {
     try { return (carregarConhecimento().faq || []).length; } catch (e) { return 0; }
   }
 
-  function salvarMemoria(perguntaFeita, resposta, passoId) {
+  function mostrarPergunta(texto, topico) {
+    const el = document.getElementById("treino-pergunta");
+    if (el) el.textContent = texto;
+    const prog = document.getElementById("treino-progresso");
+    if (prog) prog.textContent = ativo
+      ? "Memória: " + contarMemoria() + " respostas" + (topico ? " · Tema: " + topico : "") + (fila.length ? " · faltam " + fila.length : "")
+      : "";
+  }
+
+  function salvarFaq(pergunta, resposta) {
     const dados = carregarConhecimento();
     dados.faq = dados.faq || [];
-    let perguntaFaq = perguntaFeita;
-    if (projetoAtual && passoId !== "projeto" && passoId !== "outro") {
-      perguntaFaq = perguntaFeita + " (" + projetoAtual.nome + ")";
-      resposta = resposta + " [Projeto: " + projetoAtual.nome + " — " + projetoAtual.alunos + "]";
-    }
-    if (passoId === "nome") { alunoAtual = resposta; return; }
-    const chave = normalizarTexto(perguntaFaq);
+    const chave = normalizarTexto(pergunta);
     const existente = dados.faq.find(function (f) { return normalizarTexto(f.pergunta) === chave; });
     if (existente) existente.resposta = resposta;
-    else dados.faq.push({ pergunta: perguntaFaq, resposta: resposta });
+    else dados.faq.push({ pergunta: pergunta, resposta: resposta });
     salvarConhecimento(dados);
   }
 
-  function detectarProjeto(texto) {
-    try {
-      const dados = carregarConhecimento();
-      return buscarProjeto(dados, texto);
-    } catch (e) { return null; }
+  function salvarEvento(campo, resposta) {
+    const dados = carregarConhecimento();
+    dados.evento = dados.evento || {};
+    if (campo === "estandes") {
+      dados.evento.estandes = resposta.split(/[,;\n]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    } else {
+      dados.evento[campo] = resposta;
+    }
+    salvarConhecimento(dados);
+    salvarFaq("Feira: " + campo, resposta);
+  }
+
+  // Fila ordenada: escola → professores → evento → diversos → projetos (por último)
+  function montarFila() {
+    fila = [];
+    extras = {};
+    const dados = carregarConhecimento();
+    const projetos = (dados.projetos || []).slice();
+
+    const push = function (topico, texto, salvar) {
+      fila.push({ tipo: "pergunta", topico: topico, texto: texto, salvar: salvar });
+    };
+    const checkpoint = function (topico, perguntaExtra, maxExtras) {
+      fila.push({ tipo: "checkpoint", topico: topico, texto: "Mais alguma coisa sobre " + topico + "? Diga sim ou não.", perguntaExtra: perguntaExtra, maxExtras: maxExtras || 3 });
+    };
+
+    // 1. Escola
+    push("escola", "Vamos começar pela escola. Qual é o nome da escola?", function (r) { salvarFaq("Qual é a escola?", r); });
+    push("escola", "Onde fica a escola?", function (r) { salvarFaq("Onde fica a escola?", r); });
+    push("escola", "Quais turmas participam da feira?", function (r) { salvarFaq("Quais turmas participam da feira?", r); });
+    checkpoint("a escola", "O que mais sobre a escola eu devo saber?", 3);
+
+    // 2. Professores
+    push("professores", "Qual professor orienta projetos? Diga o nome e a matéria.", function (r) { salvarFaq("Professor orientador: " + r.slice(0, 60), r); });
+    checkpoint("os professores", "Me fala outro professor: nome e matéria?", 8);
+
+    // 3. Evento — Feira do Conhecimento (salva estruturado + FAQ)
+    push("evento", "Qual é o nome oficial da feira?", function (r) { salvarEvento("nome", r); });
+    push("evento", "Onde a feira acontece dentro da escola?", function (r) { salvarEvento("local", r); });
+    push("evento", "Quais são os horários da feira?", function (r) { salvarEvento("horarios", r); });
+    push("evento", "Como o visitante se localiza? Descreva o mapa.", function (r) { salvarEvento("mapa", r); });
+    push("evento", "Onde ficam os banheiros?", function (r) { salvarEvento("banheiros", r); });
+    push("evento", "Qual é a programação ou atração principal?", function (r) { salvarEvento("outras", r); });
+    checkpoint("o evento", "O que mais sobre a feira eu devo saber?", 3);
+
+    // 4. Assuntos diversos
+    push("diversos", "Me conta algo importante que o visitante sempre pergunta?", function (r) { salvarFaq("Informação da feira: " + r.slice(0, 60), r); });
+    checkpoint("assuntos diversos", "O que mais eu devo saber?", 3);
+
+    // 5. Projetos POR ÚLTIMO (2 perguntas curtas por projeto)
+    projetos.forEach(function (p) {
+      push("projeto: " + p.nome, "Agora vamos falar do " + p.nome + ". O que ele faz?", function (r) {
+        salvarFaq("O que faz o " + p.nome + "?", r + " [Projeto: " + p.nome + " — " + p.alunos + "]");
+      });
+      push("projeto: " + p.nome, "Qual é a parte mais legal do " + p.nome + "?", function (r) {
+        salvarFaq("Parte mais legal do " + p.nome + "?", r + " [Projeto: " + p.nome + " — " + p.alunos + "]");
+      });
+    });
   }
 
   async function fazerPergunta() {
     if (!ativo) return;
-    if (passo >= PASSOS.length) passo = 2; // após "outro=não", recomeça do projeto
-    const item = PASSOS[passo];
-    let texto = item.pergunta;
-    if (projetoAtual && (item.id === "o_que_faz" || item.id === "como_funciona" || item.id === "parte_legal")) {
-      texto = texto.replace("O que o projeto faz?", "O que o " + projetoAtual.nome + " faz?")
-        .replace("Como ele funciona?", "Como o " + projetoAtual.nome + " funciona?")
-        .replace("Qual é a parte mais legal?", "Qual é a parte mais legal do " + projetoAtual.nome + "?");
+    if (!fila.length) {
+      const fim = "Treino concluído! Começamos pela escola e terminamos nos projetos. Obrigada!";
+      mostrarPergunta(fim, "fim");
+      log("Helê", fim);
+      await falar(fim);
+      parar(true);
+      renderPendentes();
+      return;
     }
-    mostrarPergunta(texto);
-    log("Helê", texto);
-    await falar(texto);
+    atual = fila[0];
+    mostrarPergunta(atual.texto, atual.topico);
+    log("Helê", atual.texto);
+    await falar(atual.texto);
     if (!ativo) return;
     ouvirResposta();
   }
@@ -97,91 +137,91 @@ const Treino = (() => {
   function ouvirResposta() {
     if (!ativo || ouvindo) return;
     ouvindo = true;
-    mostrarOuvindo(true);
+    const prog = document.getElementById("treino-progresso");
+    if (prog) prog.textContent = "Ouvindo... (ou digite abaixo e dê Enter)";
     Voz.ouvir(
       function (texto) {
         ouvindo = false;
-        mostrarOuvindo(false);
         receberResposta(texto);
       },
       function (erro) {
         ouvindo = false;
-        mostrarOuvindo(false);
         if (erro === "not-allowed" || erro === "service-not-allowed") {
           msg("Permita o microfone (use http://localhost) ou digite abaixo e dê Enter.");
           return;
         }
-        // Silêncio: pergunta de novo sem travar
         if (ativo) setTimeout(function () { if (ativo) ouvirResposta(); }, 800);
       },
       function () {
         ouvindo = false;
-        mostrarOuvindo(false);
         if (ativo) setTimeout(function () { if (ativo) ouvirResposta(); }, 800);
       }
     );
   }
 
-  function mostrarOuvindo(on) {
-    const prog = document.getElementById("treino-progresso");
-    if (on && prog) prog.textContent = "Ouvindo... (ou digite abaixo e dê Enter)";
-    else mostrarPergunta(document.getElementById("treino-pergunta").textContent);
+  function ehSim(texto) {
+    return /^(sim|s|quero|claro|bora|vamos|ok|aham|positivo|tem|tenho)\b/.test(normalizarTexto(texto));
   }
 
-  async function receberResposta(texto) {
-    texto = (texto || "").trim();
-    if (!texto || !ativo) return;
-    Voz.pararDeOuvir();
-    log("Você", texto);
-    const item = PASSOS[passo];
-    const norm = normalizarTexto(texto);
+  function ehNao(texto) {
+    return /^(nao|n|chega|para|parar|acabou|pronto|so isso|finalizar)\b/.test(normalizarTexto(texto));
+  }
 
-    if (item.id === "projeto") {
-      const p = detectarProjeto(texto);
-      if (p) {
-        projetoAtual = p;
-        salvarMemoria("Quem apresenta " + p.nome + "?", (alunoAtual ? alunoAtual + " apresenta " : "") + p.nome + ". " + texto, "apresenta");
-        passo = 3;
+  function receberResposta(texto) {
+    texto = (texto || "").trim();
+    if (!texto || !ativo || !atual) return;
+    try { Voz.pararDeOuvir(); } catch (e) { /* ignora */ }
+    log("Você", texto);
+
+    if (atual.tipo === "checkpoint") {
+      if (ehSim(texto)) {
+        const usados = extras[atual.topico] || 0;
+        if (usados >= atual.maxExtras) {
+          fila.shift();
+          msg("Vamos seguir para o próximo tema.");
+        } else {
+          extras[atual.topico] = usados + 1;
+          fila.shift();
+          const extra = { tipo: "pergunta", topico: atual.topico, texto: atual.perguntaExtra, salvar: function (r) { salvarFaq("Sobre " + atual.topico + ": " + r.slice(0, 60), r); } };
+          const volta = atual;
+          fila.unshift(volta);
+          fila.unshift(extra);
+        }
       } else {
-        // Não achou projeto: salva mesmo assim e segue
-        salvarMemoria(item.pergunta, texto, item.id);
-        projetoAtual = null;
-        passo = 3;
+        fila.shift(); // "não" ou qualquer outra coisa: segue o fluxo
       }
-    } else if (item.id === "outro") {
-      const querOutro = /^(sim|s|quero|claro|bora|vamos|ok)\b/.test(norm) || detectarProjeto(texto);
-      const disseNao = /^(nao|não|n|chega|para|parar)\b/.test(norm);
-      if (querOutro) {
-        const p = detectarProjeto(texto);
-        if (p) projetoAtual = p;
-        passo = 3;
-        if (p) { mostrarPergunta("Legal! Vamos falar do " + p.nome + "."); }
-      } else if (disseNao) {
-        await falar("Obrigada! Já guardei tudo na memória.");
-        log("Helê", "Obrigada! Já guardei tudo na memória.");
-        parar();
-        renderPendentes();
-        return;
-      } else {
-        salvarMemoria(item.pergunta, texto, item.id);
-        passo = 2;
-      }
-    } else {
-      salvarMemoria(document.getElementById("treino-pergunta").textContent, texto, item.id);
-      passo++;
+      setTimeout(function () { if (ativo) fazerPergunta(); }, 500);
+      return;
     }
-    mostrarPergunta(document.getElementById("treino-pergunta").textContent);
+
+    try {
+      if (atual.salvar) atual.salvar(texto);
+      msg("Guardado na memória!");
+    } catch (e) { msg("Não consegui salvar, tente de novo."); return; }
+    fila.shift();
     renderPendentes();
     setTimeout(function () { if (ativo) fazerPergunta(); }, 600);
   }
 
-  function parar() {
+  function parar(silencioso) {
     ativo = false;
     ouvindo = false;
     try { Voz.pararFala(); Voz.pararDeOuvir(); } catch (e) { /* ignora */ }
-    const el = document.getElementById("treino-pergunta");
-    if (el) el.textContent = "Treino pausado. Clique em Iniciar conversa para continuar treinando a memória.";
-    mostrarPergunta(el.textContent);
+    if (!silencioso) {
+      const el = document.getElementById("treino-pergunta");
+      if (el) el.textContent = "Treino pausado. Clique em Iniciar conversa para recomeçar do início.";
+      mostrarPergunta(document.getElementById("treino-pergunta").textContent, "");
+    }
+  }
+
+  function resetar() {
+    if (!confirm("Apagar toda a memória treinada e recomeçar do padrão?")) return;
+    salvarConhecimento(conhecimentoPadrao());
+    salvarPendentes([]);
+    renderPendentes();
+    parar();
+    document.getElementById("treino-conversa").innerHTML = "";
+    msg("Memória resetada! Clique em Iniciar conversa.");
   }
 
   function renderPendentes() {
@@ -234,13 +274,13 @@ const Treino = (() => {
     document.getElementById("btn-treino-iniciar").addEventListener("click", function () {
       if (ativo) return;
       ativo = true;
-      passo = 0;
-      projetoAtual = null;
+      montarFila();
       document.getElementById("treino-conversa").innerHTML = "";
-      log("Helê", "Vamos treinar minha memória! Responda falando ou digitando.");
+      log("Helê", "Vamos treinar! Começamos pela escola e deixamos os projetos por último. Responda falando ou digitando.");
       fazerPergunta();
     });
-    document.getElementById("btn-treino-parar").addEventListener("click", parar);
+    document.getElementById("btn-treino-parar").addEventListener("click", function () { parar(); });
+    document.getElementById("btn-treino-reset").addEventListener("click", resetar);
     const form = document.getElementById("form-treino-texto");
     if (form) form.addEventListener("submit", function (e) {
       e.preventDefault();
