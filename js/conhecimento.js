@@ -166,7 +166,7 @@ const PROJETOS_FEIRA = [
 function conhecimentoPadrao() {
   return {
     projeto: {
-      nome: "Assistente HEle",
+      nome: "Assistente Hêle",
       descricao: "Uma assistente virtual que conversa com os visitantes da Feira de Conhecimento.",
       detalhes: "Ela fala e escuta usando o navegador, tem um avatar animado e é ativada por um sensor de presença no Arduino. Conhece todos os 20 projetos da feira.",
       creditos: "Desenvolvida pelos alunos como projeto da feira de ciências."
@@ -183,11 +183,11 @@ function conhecimentoPadrao() {
     projetos: PROJETOS_FEIRA,
     faq: [
       {
-        pergunta: "Quem desenvolveu a HEle?",
+        pergunta: "Quem desenvolveu a Hêle?",
         resposta: "Foi desenvolvida pelos alunos como projeto da feira de ciências."
       },
       {
-        pergunta: "Como a HEle funciona?",
+        pergunta: "Como a Hêle funciona?",
         resposta: "Ela usa o microfone e a caixa de som do computador para ouvir e falar com você."
       },
       {
@@ -205,6 +205,14 @@ function conhecimentoPadrao() {
       {
         pergunta: "O que é o Detector de Qualidade do Ar?",
         resposta: "É um protótipo utilizando sensores para medir características do ambiente e apresentar os dados coletados de maneira visual, desenvolvido por João Pedro, Gustavo e Alice."
+      },
+      {
+        pergunta: "O que você pode fazer?",
+        resposta: "Posso apresentar os 20 projetos da feira, falar sobre horários, local, estandes e responder suas perguntas. É só perguntar pelo nome de um projeto ou pelo evento!"
+      },
+      {
+        pergunta: "Quem é você?",
+        resposta: "Sou a Hêle, a assistente virtual da feira de ciências. Conheço os 20 projetos e adoro conversar com os visitantes!"
       }
     ]
   };
@@ -295,6 +303,13 @@ function distanciaEdicao(a, b) {
   return dp[m][n];
 }
 
+const STOPWORDS = {};
+["para", "pode", "podem", "fazer", "fazes", "fala", "fale", "falar", "diga", "dizem", "sobre", "projeto", "projetos", "qual", "quais", "quanto", "quantos", "quantas", "como", "muito", "muita", "muitos", "muitas", "mesmo", "mesma", "coisa", "coisas", "esse", "essa", "esses", "essas", "este", "esta", "estes", "estas", "isso", "isto", "aquele", "aquela", "feira", "escola", "aluno", "alunos", "todos", "todas", "todo", "toda", "onde", "quando", "quem", "qualquer", "voces", "deles", "delas", "nele", "nela", "neles", "nelas", "aqui", "entao", "tambem", "ainda", "entre", "outro", "outra", "outros", "outras", "sejam", "serem", "foram", "estao", "estamos", "tenho", "temos", "posso", "consegue", "sabe", "sabem"].forEach(function (w) { STOPWORDS[w] = true; });
+
+function palavrasUteis(t) {
+  return t.split(/[^a-z0-9]+/).filter(function (w) { return w.length >= 4 && !STOPWORDS[w]; });
+}
+
 function pontuacaoExata(p, t, palavrasPergunta) {
   const nome = normalizarTexto(p.nome || "");
   if (!nome) return 0;
@@ -314,15 +329,25 @@ function buscarProjeto(conhecimento, termo) {
   if (!conhecimento || !conhecimento.projetos || !termo) return null;
   const t = normalizarTexto(termo).trim();
   if (!t) return null;
-  const palavrasPergunta = t.split(/[^a-z0-9]+/).filter(function (w) { return w.length >= 4; });
-  // Passada 1: exato (prioriza "cidade" em "cidade intelegente")
+  const palavrasPergunta = palavrasUteis(t);
+  // Passada 1: exato no NOME (evita hijack de perguntas genéricas como "o que você pode fazer")
   let melhor = null, melhorPts = 0;
   for (const p of conhecimento.projetos) {
     const pts = pontuacaoExata(p, t, palavrasPergunta);
     if (pts > melhorPts) { melhorPts = pts; melhor = p; }
   }
-  if (melhor) return melhor;
-  // Passada 2: fuzzy (tolera erro de transcrição)
+  // Só responde direto se o nome do projeto foi mencionado (50+).
+  // Menor que isso (ex: 11 pts por "pode" na descrição) vai para a Gemini, que explica melhor.
+  if (melhor && melhorPts >= 50) return melhor;
+  if (melhor && melhorPts >= 10 && palavrasPergunta.length >= 2) {
+    // 2+ palavras úteis nos outros campos (ex: "ana clara" nos alunos) ainda vale
+    const confirma = palavrasPergunta.filter(function (w) {
+      const outros = normalizarTexto([(melhor.alunos || ""), (melhor.area || "")].join(" "));
+      return outros.indexOf(w) !== -1;
+    }).length;
+    if (confirma) return melhor;
+  }
+  // Passada 2: fuzzy só no NOME (tolera erro de transcrição)
   for (const p of conhecimento.projetos) {
     const nome = normalizarTexto(p.nome || "");
     const palavrasNomeTodas = nome.split(/[^a-z0-9]+/).filter(Boolean);

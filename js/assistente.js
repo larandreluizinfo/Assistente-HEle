@@ -146,12 +146,12 @@ const Assistente = (() => {
       if (projeto) {
         const resposta = projeto.nome + " — " + projeto.alunos + " (" + projeto.area + "). " + projeto.objetivo + " " + projeto.descricao;
         setStatus("Falando");
-        setFala("HEle: " + resposta);
+        setFala(CONFIG.NOME + ": " + resposta);
         await falarAsync(resposta);
       } else {
         const resposta = await chamarGemini(texto);
         setStatus("Falando");
-        setFala("HEle: " + resposta);
+        setFala(CONFIG.NOME + ": " + resposta);
         await falarAsync(resposta);
       }
     } catch (erro) {

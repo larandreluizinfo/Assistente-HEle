@@ -1,5 +1,5 @@
 const CONFIG = {
-  NOME: "HEle",
+  NOME: "Hêle",
   GEMINI_API_KEY: "COLE_SUA_CHAVE_AQUI",
   GEMINI_MODELO: "gemini-3.5-flash-lite",
   GEMINI_URL: "https://generativelanguage.googleapis.com/v1/models",
